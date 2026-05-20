@@ -10,10 +10,6 @@ on:
 permissions:
   contents: read
  
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
- 
 jobs:
   build:
     name: build-${{ matrix.os }}-node${{ matrix.node }}-${{ matrix.mode }}
@@ -24,25 +20,9 @@ jobs:
         os: [ubuntu-latest, windows-latest]
         node: [18, 20]
         mode: [debug, release]
-        exclude:
-          - os: windows-latest
-            node: 18
-          - os: windows-latest
-            mode: debug
-        include:
-          - os: ubuntu-latest
-            node: 20
-            mode: release
-            deploy_env: prod
-            artifact_name: app-prod-bundle
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
- 
-      - name: Capture start time
-        id: start
-        shell: bash
-        run: echo "ts=$(date +%s)" >> "$GITHUB_OUTPUT"
  
       - name: Setup Node.js ${{ matrix.node }}
         uses: actions/setup-node@v4
@@ -58,7 +38,6 @@ jobs:
           node --version
  
       - name: Simulated build
-        id: build
         shell: bash
         run: |
           if [ "${{ matrix.mode }}" = "debug" ]; then
@@ -68,52 +47,3 @@ jobs:
           fi
           sleep 3
           echo "Build OK"
- 
-      - name: Production-only packaging
-        id: pack
-        if: matrix.deploy_env == 'prod'
-        shell: bash
-        run: |
-          echo "Packaging artifact for deploy_env=${{ matrix.deploy_env }}"
-          echo "Artifact name: ${{ matrix.artifact_name }}"
-          mkdir -p dist
-          echo "build-id=$(date +%s)" > dist/${{ matrix.artifact_name }}.txt
-          cat dist/${{ matrix.artifact_name }}.txt
- 
-      # Resumen dinámico en Markdown. Se ejecuta SIEMPRE (success o failure).
-      - name: Write job summary
-        if: always()
-        shell: bash
-        run: |
-          END=$(date +%s)
-          START="${{ steps.start.outputs.ts }}"
-          DURATION=$(( END - START ))
-          BUILD_RESULT="${{ steps.build.outcome }}"
-          PACK_RESULT="${{ steps.pack.outcome }}"
- 
-          {
-            echo "## Matrix Build Summary"
-            echo ""
-            echo "| Campo | Valor |"
-            echo "|---|---|"
-            echo "| Workflow | ${{ github.workflow }} |"
-            echo "| Run ID | ${{ github.run_id }} |"
-            echo "| Rama / ref | ${{ github.ref }} |"
-            echo "| Commit | ${{ github.sha }} |"
-            echo ""
-            echo "### Configuración ejecutada (matrix)"
-            echo "| Variable | Valor |"
-            echo "|---|---|"
-            echo "| os | ${{ matrix.os }} |"
-            echo "| node | ${{ matrix.node }} |"
-            echo "| mode | ${{ matrix.mode }} |"
-            echo "| deploy_env | ${{ matrix.deploy_env || 'n/a' }} |"
-            echo "| artifact_name | ${{ matrix.artifact_name || 'n/a' }} |"
-            echo ""
-            echo "### Resultado"
-            echo "- Build step: **$BUILD_RESULT**"
-            echo "- Packaging step: **$PACK_RESULT**"
-            echo ""
-            echo "### Tiempo estimado"
-            echo "- Duración aproximada del job: **${DURATION}s**"
-          } >> "$GITHUB_STEP_SUMMARY"
