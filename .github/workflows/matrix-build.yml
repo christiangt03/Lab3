@@ -1,1 +1,49 @@
-
+name: Matrix Build Enterprise
+ 
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+ 
+permissions:
+  contents: read
+ 
+jobs:
+  build:
+    name: build-${{ matrix.os }}-node${{ matrix.node }}-${{ matrix.mode }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        node: [18, 20]
+        mode: [debug, release]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+ 
+      - name: Setup Node.js ${{ matrix.node }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+ 
+      - name: Show matrix variables
+        shell: bash
+        run: |
+          echo "OS:    ${{ matrix.os }}"
+          echo "Node:  ${{ matrix.node }}"
+          echo "Mode:  ${{ matrix.mode }}"
+          node --version
+ 
+      - name: Simulated build
+        shell: bash
+        run: |
+          if [ "${{ matrix.mode }}" = "debug" ]; then
+            echo "Building with DEBUG flags (verbose, no minify)"
+          else
+            echo "Building with RELEASE flags (optimize, minify)"
+          fi
+          sleep 3
+          echo "Build OK"
