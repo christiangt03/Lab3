@@ -10,6 +10,12 @@ on:
 permissions:
   contents: read
  
+# Evita ejecuciones redundantes en la misma rama o PR.
+# Si llega un nuevo push, cancela la ejecución anterior del mismo grupo.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+ 
 jobs:
   build:
     name: build-${{ matrix.os }}-node${{ matrix.node }}-${{ matrix.mode }}
@@ -26,7 +32,6 @@ jobs:
           - os: windows-latest
             mode: debug
         include:
-          # Extiende el job ubuntu+node20+release con variables de producción
           - os: ubuntu-latest
             node: 20
             mode: release
@@ -60,7 +65,6 @@ jobs:
           sleep 3
           echo "Build OK"
  
-      # Solo se ejecuta cuando matrix.deploy_env existe (job de producción)
       - name: Production-only packaging
         if: matrix.deploy_env == 'prod'
         shell: bash
