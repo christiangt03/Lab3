@@ -20,6 +20,13 @@ jobs:
         os: [ubuntu-latest, windows-latest]
         node: [18, 20]
         mode: [debug, release]
+        exclude:
+          # Incompatible: nuestra base Windows no soporta Node 18
+          - os: windows-latest
+            node: 18
+          # Innecesaria: no compilamos en debug sobre Windows en CI
+          - os: windows-latest
+            mode: debug
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
